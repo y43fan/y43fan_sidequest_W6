@@ -1,5 +1,3 @@
-@ -0,0 +1,36 @@
-
 ## Project Title
 
 GBDA302 Week 6 Example 5: Adding audio or simple physics
@@ -29,6 +27,11 @@ Add a sound or simple physics to the given example sketch.
 
 ## Assets
 
+hitEnemy.wav
+jump.wav
+leafCollect.wav
+music.wav
+receiveDamage.wav
 background_layer_1
 background_layer_2
 background_layer_3
