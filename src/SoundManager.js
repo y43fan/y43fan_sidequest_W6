@@ -21,10 +21,35 @@ export class SoundManager {
   }
 
   load(name, path) {
-    this.sfx[name] = loadSound(path);
+    try {
+      this.sfx[name] = loadSound(path);
+    } catch (err) {
+      console.warn(
+        `[SoundManager] Failed to load sound: ${name} from ${path}`,
+        err,
+      );
+    }
+  }
+
+  /**
+   * Load multiple sounds from a map: { name: path, ... }
+   */
+  loadMultiple(soundMap) {
+    if (!soundMap || typeof soundMap !== "object") return;
+    for (const [name, path] of Object.entries(soundMap)) {
+      this.load(name, path);
+    }
   }
 
   play(name) {
-    this.sfx[name]?.play();
+    if (!this.sfx[name]) {
+      console.warn(`[SoundManager] Unknown sound: ${name}`);
+      return;
+    }
+    try {
+      this.sfx[name].play();
+    } catch (err) {
+      console.warn(`[SoundManager] Failed to play sound: ${name}`, err);
+    }
   }
 }

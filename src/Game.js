@@ -34,6 +34,7 @@ export class Game {
     this.input = opts.inputManager || null;
     this.sound = opts.soundManager || null;
     this.debug = opts.debugOverlay || null;
+    this.particles = opts.particles || null;
 
     // highscores (SYSTEM)
     this.highScores = opts.highScores || new HighScoreManager();
@@ -68,7 +69,10 @@ export class Game {
   }
 
   build() {
-    this.level = new Level(this.pkg, this.assets, { hudGfx: this.hudGfx, events: this.events });
+    this.level = new Level(this.pkg, this.assets, {
+      hudGfx: this.hudGfx,
+      events: this.events,
+    });
     this.level.build();
 
     // init leaderboard snapshot
@@ -174,11 +178,65 @@ export class Game {
     // SYSTEM listeners (sound/debug)
     // -----------------------
     if (this.sound) {
-      this._unsubs.push(this.events.on("leaf:collected", () => this.sound.play("leaf")));
-      this._unsubs.push(this.events.on("player:damaged", () => this.sound.play("hurt")));
-      this._unsubs.push(this.events.on("player:died", () => this.sound.play("die")));
-      this._unsubs.push(this.events.on("level:won", () => this.sound.play("win")));
-      this._unsubs.push(this.events.on("boar:damaged", () => this.sound.play("hit")));
+      this._unsubs.push(
+        this.events.on("leaf:collected", () => this.sound.play("leaf")),
+      );
+      this._unsubs.push(
+        this.events.on("player:damaged", () => this.sound.play("hurt")),
+      );
+      this._unsubs.push(
+        this.events.on("player:died", () => this.sound.play("die")),
+      );
+      this._unsubs.push(
+        this.events.on("level:won", () => this.sound.play("win")),
+      );
+      this._unsubs.push(
+        this.events.on("boar:damaged", () => this.sound.play("hit")),
+      );
+      this._unsubs.push(
+        this.events.on("player:jumped", () => this.sound.play("jump")),
+      );
+    }
+
+    // -----------------------
+    // VISUAL effects listeners (particles)
+    // -----------------------
+    if (this.particles) {
+      // Leaf collected: sparkle effect
+      this._unsubs.push(
+        this.events.on("leaf:collected", (pos) => {
+          if (pos?.x && pos?.y) {
+            this.particles.emit(pos.x, pos.y, "spark", 10);
+          }
+        }),
+      );
+
+      // Player takes damage: dust effect at player position
+      this._unsubs.push(
+        this.events.on("player:damaged", (pos) => {
+          if (pos?.x && pos?.y) {
+            this.particles.emit(pos.x, pos.y, "dust", 12);
+          }
+        }),
+      );
+
+      // Boar hits player: impact dust
+      this._unsubs.push(
+        this.events.on("boar:damaged", (pos) => {
+          if (pos?.x && pos?.y) {
+            this.particles.emit(pos.x, pos.y, "spark", 8);
+          }
+        }),
+      );
+
+      // Player jumps: ground dust
+      this._unsubs.push(
+        this.events.on("player:jumped", (pos) => {
+          if (pos?.x && pos?.y) {
+            this.particles.emit(pos.x, pos.y, "dust", 6);
+          }
+        }),
+      );
     }
 
     if (this.debug) {
@@ -240,7 +298,8 @@ export class Game {
       // - Up/Down to change letter
       // - Attack (Space) to confirm (or Jump)
       if (inputSnap?.left) this._nameCursor = Math.max(0, this._nameCursor - 1);
-      if (inputSnap?.right) this._nameCursor = Math.min(2, this._nameCursor + 1);
+      if (inputSnap?.right)
+        this._nameCursor = Math.min(2, this._nameCursor + 1);
 
       if (inputSnap?.jumpPressed) this._cycleNameChar(-1);
       if (inputSnap?.attackPressed) this._cycleNameChar(+1);
@@ -268,7 +327,10 @@ export class Game {
     const cur = this.nameEntry[idx] ?? "A";
     const at = Math.max(0, chars.indexOf(cur));
     const next = (at + dir + chars.length) % chars.length;
-    this.nameEntry = this.nameEntry.substring(0, idx) + chars[next] + this.nameEntry.substring(idx + 1);
+    this.nameEntry =
+      this.nameEntry.substring(0, idx) +
+      chars[next] +
+      this.nameEntry.substring(idx + 1);
   }
 
   _commitNameEntry() {

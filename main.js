@@ -37,7 +37,11 @@ import { LevelLoader } from "./src/LevelLoader.js";
 import { Game } from "./src/Game.js";
 import { ParallaxBackground } from "./src/ParallaxBackground.js";
 import { loadAssets } from "./src/AssetLoader.js";
-import { applyIntegerScale, installResizeHandler } from "./src/utils/IntegerScale.js";
+import {
+  applyIntegerScale,
+  installResizeHandler,
+} from "./src/utils/IntegerScale.js";
+import { ParticleEffect } from "./src/ParticleEffect.js";
 
 import { CameraController } from "./src/CameraController.js";
 import { InputManager } from "./src/InputManager.js";
@@ -85,6 +89,7 @@ function preventKeysThatScroll(evt) {
 let game; // WORLD orchestrator (updates + draws world)
 let parallax; // VIEW background parallax
 let hudGfx; // VIEW overlay buffer (screen-space)
+let particles; // VIEW particle effects system
 
 let tuningDoc; // Data: tuning.json
 let levelPkg; // Data package from LevelLoader (level + view + world + tiles)
@@ -129,6 +134,9 @@ async function boot() {
   // --- Audio registry ---
   // (AudioContext may still be locked until the user clicks/presses a key.)
   soundManager = new SoundManager();
+  if (assets.soundFiles) {
+    soundManager.loadMultiple(assets.soundFiles);
+  }
 
   // --- Parallax layer defs (VIEW) ---
   const defs = levelPkg.level?.view?.parallax ?? [];
@@ -182,6 +190,7 @@ function initRuntime() {
   // Systems
   inputManager = new InputManager();
   debugOverlay = new DebugOverlay();
+  particles = new ParticleEffect();
 
   // WORLD
   game = new Game(levelPkg, assets, {
@@ -189,6 +198,7 @@ function initRuntime() {
     inputManager,
     soundManager,
     debugOverlay,
+    particles,
   });
   game.build();
 
@@ -252,6 +262,9 @@ function draw() {
   // WORLD update (includes physics step)
   game.update();
 
+  // Update particle effects
+  particles?.update();
+
   // VIEW: camera follow + clamp (after update so player position is current)
   cameraController?.update({
     viewW,
@@ -267,6 +280,9 @@ function draw() {
       // camera.off()/on() MUST be paired even if something throws.
       camera.off();
       try {
+        // Draw particle effects before HUD so they're in world space
+        particles?.draw();
+
         drawingContext.imageSmoothingEnabled = false;
         imageMode(CORNER);
         image(hudGfx, 0, 0);

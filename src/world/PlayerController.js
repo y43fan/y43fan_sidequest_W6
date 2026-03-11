@@ -67,7 +67,7 @@ export class PlayerController {
     const wantJump = input?.jumpPressed;
     if (p.knockTimer === 0 && !p.pendingDeath && grounded && wantJump) {
       p.jump();
-      this.events?.emit("player:jumped", {});
+      this.events?.emit("player:jumped", { x: p.sprite.x, y: p.sprite.y });
     }
 
     // -----------------------

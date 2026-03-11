@@ -42,9 +42,13 @@ export async function loadAssets(levelPkg, tuningDoc) {
   // ---- anis ----
   // Prefer tuning-driven animations if present, else fallback to monolith defaults.
   // ALSO: inject a spriteSheet reference by default so addAnis never tries to load "undefined".
-  let playerAnis = buildAnis(tuningDoc?.player?.animations, defaultPlayerAnis(), {
-    spriteSheet: playerImg,
-  });
+  let playerAnis = buildAnis(
+    tuningDoc?.player?.animations,
+    defaultPlayerAnis(),
+    {
+      spriteSheet: playerImg,
+    },
+  );
 
   let boarAnis = buildAnis(tuningDoc?.boar?.animations, defaultBoarAnis(), {
     spriteSheet: boarImg,
@@ -54,6 +58,17 @@ export async function loadAssets(levelPkg, tuningDoc) {
   // This prevents runtime XHRs and avoids /undefined crashes.
   playerAnis = await resolveAniImages(playerAnis, "player");
   boarAnis = await resolveAniImages(boarAnis, "boar");
+
+  // ---- sounds ----
+  // Load available sound files from assets/sfx/
+  // These are wrapped in a map for SoundManager to load
+  const soundFiles = {
+    jump: "assets/sfx/jump.wav",
+    leaf: "assets/sfx/leafCollect.wav",
+    hurt: "assets/sfx/receiveDamage.wav",
+    hit: "assets/sfx/hitEnemy.wav",
+    music: "assets/sfx/music.wav",
+  };
 
   // Guard rails: fail early with a helpful message instead of crashing inside p5/p5play.
   validateAssets({
@@ -91,6 +106,8 @@ export async function loadAssets(levelPkg, tuningDoc) {
 
     playerAnis,
     boarAnis,
+
+    soundFiles,
   };
 }
 
@@ -101,7 +118,8 @@ export async function loadAssets(levelPkg, tuningDoc) {
  * - keeps other keys intact
  */
 function buildAnis(tuningAnis, fallbackAnis, inject = {}) {
-  const src = tuningAnis && typeof tuningAnis === "object" ? tuningAnis : fallbackAnis;
+  const src =
+    tuningAnis && typeof tuningAnis === "object" ? tuningAnis : fallbackAnis;
   const out = {};
 
   for (const [name, def] of Object.entries(src)) {
@@ -156,17 +174,26 @@ function defaultBoarAnis() {
 function loadImageAsync(path) {
   if (!path) {
     // This is the exact scenario that led to GET /undefined.
-    throw new Error(`[AssetLoader] loadImageAsync called with invalid path: ${path}`);
+    throw new Error(
+      `[AssetLoader] loadImageAsync called with invalid path: ${path}`,
+    );
   }
   return new Promise((resolve, reject) => {
     try {
       loadImage(
         path,
         (img) => resolve(img),
-        (err) => reject(new Error(`[AssetLoader] Failed to load image "${path}": ${err}`)),
+        (err) =>
+          reject(
+            new Error(`[AssetLoader] Failed to load image "${path}": ${err}`),
+          ),
       );
     } catch (e) {
-      reject(new Error(`[AssetLoader] loadImage("${path}") threw: ${e?.message ?? e}`));
+      reject(
+        new Error(
+          `[AssetLoader] loadImage("${path}") threw: ${e?.message ?? e}`,
+        ),
+      );
     }
   });
 }
@@ -177,7 +204,7 @@ async function loadBackgrounds(levelPkg) {
   // levelPkg.parallaxLayers = [{ key:"bgFar", src:"assets/..." }, ...]
   // Your levels.json stores parallax in: level.view.parallax
   const layers = levelPkg?.level?.view?.parallax || levelPkg?.parallaxLayers;
-  
+
   if (Array.isArray(layers) && layers.length > 0) {
     const bg = {};
     for (const layer of layers) {
@@ -223,7 +250,9 @@ async function resolveAniImages(anis, label = "entity") {
     // (This makes tuning flexible and prevents p5play from trying to load "undefined".)
     if (typeof d.spriteSheet === "string") {
       if (!d.spriteSheet) {
-        throw new Error(`[AssetLoader] ${label}.${name}.spriteSheet is an empty string`);
+        throw new Error(
+          `[AssetLoader] ${label}.${name}.spriteSheet is an empty string`,
+        );
       }
       d.spriteSheet = await loadImageAsync(d.spriteSheet);
     }
@@ -294,7 +323,9 @@ function validateAssets(bundle) {
         );
       }
       if ("img" in def && (def.img === undefined || def.img === null)) {
-        throw new Error(`[AssetLoader] ${label}Anis.${name}.img is undefined/null`);
+        throw new Error(
+          `[AssetLoader] ${label}Anis.${name}.img is undefined/null`,
+        );
       }
     }
   };
